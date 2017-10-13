@@ -41,14 +41,40 @@
     #endif
 #endif
 
-#if !defined(ARDUINO) || (ARDUINO < 151)
-    #define BLYNK_NO_YIELD
+#if defined(LINUX)
+    #if defined(RASPBERRY)
+        #include <wiringPi.h>
+    #else
+        #define _POSIX_C_SOURCE 200809L
+        #include <time.h>
+        #include <unistd.h>
+
+        static inline
+        void delay(unsigned long ms)
+        {
+            usleep(ms * 1000);
+        }
+
+        static
+        millis_time_t millis()
+        {
+            struct timespec ts;
+            clock_gettime(CLOCK_MONOTONIC, &ts );
+            return ( ts.tv_sec * 1000 + ts.tv_nsec / 1000000L );
+        }
+    #endif
 #endif
 
-#if defined(BLYNK_NO_YIELD)
-    #define BLYNK_RUN_YIELD() {}
-#else
-    #define BLYNK_RUN_YIELD() { ::delay(0); }
+#if !defined(BLYNK_RUN_YIELD)
+    #if defined(BLYNK_NO_YIELD)
+        #define BLYNK_RUN_YIELD() {}
+    #elif defined(SPARK) || defined(PARTICLE)
+        #define BLYNK_RUN_YIELD() { Particle.process(); }
+    #elif !defined(ARDUINO) || (ARDUINO < 151)
+        #define BLYNK_RUN_YIELD() {}
+    #else
+        #define BLYNK_RUN_YIELD() { ::delay(0); }
+    #endif
 #endif
 
 #if defined(__AVR__)
@@ -135,7 +161,7 @@ void BlynkFatal() BLYNK_NORETURN;
                 bool prev_print = true;
                 while (l2--) {
                     const uint8_t c = *octets++ & 0xFF;
-                    if (isprint(c)) {
+                    if (c >= 32 && c < 127) {
                         if (!prev_print) { BLYNK_PRINT.print(']'); }
                         BLYNK_PRINT.print((char)c);
                         prev_print = true;

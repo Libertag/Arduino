@@ -38,7 +38,8 @@ void restartMCU() {
 void enterConfigMode()
 {
   WiFi.disconnect();
-  WiFi.enableSTA(false);
+  WiFi.mode(WIFI_OFF);
+  delay(1000);
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(WIFI_AP_IP, WIFI_AP_IP, WIFI_AP_Subnet);
   WiFi.softAP(PRODUCT_WIFI_SSID);
@@ -82,7 +83,12 @@ void enterConfigMode()
 
     String content;
     unsigned statusCode;
+
+    DEBUG_PRINT(String("WiFi SSID: ") + ssid + " Pass: " + pass);
+    DEBUG_PRINT(String("Blynk cloud: ") + token + " @ " + host + ":" + port);
+
     if (token.length() == 32 && ssid.length() > 0) {
+      configStore.flagConfig = false;
       CopyString(ssid, configStore.wifiSSID);
       CopyString(pass, configStore.wifiPass);
       CopyString(token, configStore.cloudToken);
@@ -93,14 +99,11 @@ void enterConfigMode()
         configStore.cloudPort = port.toInt();
       }
 
-      DEBUG_PRINT(String("WiFi SSID: ") + configStore.wifiSSID + " Pass: " + configStore.wifiPass);
-      DEBUG_PRINT(String("Blynk cloud: ") + configStore.cloudToken + " @ " + configStore.cloudHost + ":" + configStore.cloudPort);
-
       content = R"json({"status":"ok","msg":"Configuration saved"})json";
       statusCode = 200;
       server.send(statusCode, "application/json", content);
 
-      BlynkState::set(MODE_CONNECTING_NET);
+      BlynkState::set(MODE_SWITCH_TO_STA);
     } else {
       DEBUG_PRINT("Configuration invalid");
       content = R"json({"status":"error","msg":"Configuration invalid"})json";
@@ -146,11 +149,10 @@ void enterConnectNet() {
   BlynkState::set(MODE_CONNECTING_NET);
   DEBUG_PRINT(String("Connecting to WiFi: ") + configStore.wifiSSID);
   
-  WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   if (!WiFi.begin(configStore.wifiSSID, configStore.wifiPass))
     return;
-    
+  
   unsigned long timeoutMs = millis() + WIFI_NET_CONNECT_TIMEOUT;
   while ((timeoutMs > millis()) && (WiFi.status() != WL_CONNECTED))
   {
@@ -197,6 +199,18 @@ void enterConnectCloud() {
   } else {
     BlynkState::set(MODE_ERROR);
   }
+}
+
+void enterSwitchToSTA() {
+  BlynkState::set(MODE_SWITCH_TO_STA);
+
+  DEBUG_PRINT("Switching to STA...");
+
+  WiFi.mode(WIFI_OFF);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
+
+  BlynkState::set(MODE_CONNECTING_NET);
 }
 
 void enterError() {
