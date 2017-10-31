@@ -1,3 +1,7 @@
+
+
+
+
 //  Выходы виртуальные
 //  V0  ------  
 //  V1  ------  слайдер установки температуры
@@ -23,8 +27,8 @@
 //  V21 ------
 //  V22 ------
 //  V23 ------
-//  V24 ------
-//  V25 ------
+//  V24 ------   
+//  V25 ------  
 //  Выходы цифровые
 //  D1  ------
 //  D2  ------
@@ -76,22 +80,22 @@
 //  D48 ------
 //  D49 ------
 //  D50 ------
-//добавим коментарий для проверки
+//define должен быть раньше include, иначе нет вывода в ком порт
 
-
+#define ONE_WIRE_BUS 40
+#define BLYNK_PRINT Serial   // Comment this out to disable prints and save space
+#define BLYNK_DEBUG
 #include <Time.h>
 #include <TimeLib.h>
 #include <SPI.h>
-#include <Ethernet.h>
-#include <BlynkSimpleEthernet.h>
+#include <Ethernet2.h>
+#include <BlynkSimpleEthernet2.h>
 #include <TimerOne.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SimpleTimer.h>
 #include <DS3231.h>
-#define ONE_WIRE_BUS 40
-#define BLYNK_PRINT Serial    // Comment this out to disable prints and save space
-//#define BLYNK_DEBUG
+
 
 SimpleTimer timer;
 OneWire oneWire(ONE_WIRE_BUS);
@@ -105,8 +109,8 @@ word tempOut=0;
 char auth[] = "37b6b2042b98417d99ad8fb1f85355d3";
 WidgetLED led1(V7);
 WidgetLED led2(V8);
-#define W5100_CS  10
-#define SDCARD_CS 4
+//#define W5100_CS  10
+//#define SDCARD_CS 4
 int relay8 =  23; // выход на реле
 int relay7 =  25; // выход на реле
 int relay6 =  27; // выход на реле
@@ -170,8 +174,8 @@ BLYNK_WRITE(V6) //обработка виджета слайдера устан�
 
 void setup()
 {
-  pinMode(SDCARD_CS, OUTPUT);
-  digitalWrite(SDCARD_CS, HIGH); // Deselect the SD card
+  //pinMode(SDCARD_CS, OUTPUT);
+  //digitalWrite(SDCARD_CS, HIGH); // Deselect the SD card
   timer.setInterval(2000, sendTemps); //вызов подпрограммы получения температуры 2 сек
   timer.setInterval(1000, relayTemp); //вызов подпрограммы управления реле температуры 1 сек
   timer.setInterval(10000, sendTime); //вызов подпрограммы вывода времени 10 сек
@@ -193,7 +197,7 @@ void setup()
   digitalWrite(relay6, HIGH);
   digitalWrite(relay7, HIGH);
   digitalWrite(relay8, HIGH);
-  //rtc.begin();
+  rtc.begin();
 }
 
 void sendTemps() //получение и отправка температуры
@@ -215,7 +219,8 @@ void sendTime() //получение и вывод времени rtc
   long timeNowHour=(timeNow/3600)%24; // вычисление количество часов с начала суток
   long timeNowMin=(timeNow/60)%60; // вычисление количества минут с начала часа
   timeNowSec=(timeNowHour*60+timeNowMin)*60; // вычисление количество секунд с начала суток
-  
+  Blynk.virtualWrite(25, timeNowHour);
+  Blynk.virtualWrite(26, timeNowMin);
   if (timeNowSec >= timeStart && timeNowSec <= timeStop) 
   { //если количество секунд с начала суток попадает в промежуток установки то работаем по установке таймера
 
@@ -229,6 +234,7 @@ void sendTime() //получение и вывод времени rtc
   
 void relayTemp() // управление реле температуры
 {
+  
  if (tnight ==0) // если работаем не по установке таймера то сравниваем со значением с виджета V1 иначе с виджета V6
  {
   if (tempIn < t-1 && i==1)  
