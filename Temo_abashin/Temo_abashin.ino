@@ -24,7 +24,7 @@
 int i=0;
 int t=16;
 word tempIn=16;
-int relay1 =  37; // выход на реле
+int relay1 =  5; // выход на реле
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
@@ -78,16 +78,17 @@ void relayTemp() // управление реле температуры
 {
   
  
-  if (tempIn < t-1 )  
+  if (tempIn < t-1 && i==1)  
     {
     digitalWrite(relay1, LOW);
     led2.on();
     }
-  else   if (tempIn >t ) 
+  else   if (tempIn >t || i==0 ) 
     {
     digitalWrite(relay1, HIGH);
     led2.off();
     }
+
   }
   
 void sendTemps() //получение и отправка температуры
@@ -109,7 +110,8 @@ void setup()
 
   timer.setInterval(2000, sendTemps); //вызов подпрограммы получения температуры 2 сек
   timer.setInterval(1000, relayTemp); //вызов подпрограммы управления реле температуры 1 сек
-  
+  pinMode(relay1, OUTPUT);
+  digitalWrite(relay1, LOW);
   Serial.begin(9600);
 
   Blynk.begin(auth, ssid, pass);
