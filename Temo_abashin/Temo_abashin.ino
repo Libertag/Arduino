@@ -11,7 +11,7 @@
 */
 
 #define BLYNK_PRINT Serial
-#define ONE_WIRE_BUS 10 //Вывод подключение датчика температуры OneWare
+#define ONE_WIRE_BUS 2 //Вывод подключение датчика температуры OneWare
 #define BLYNK_DEBUG
 
 #include <ESP8266WiFi.h>
@@ -23,12 +23,11 @@
 
 int i=0;
 int t=16;
-word tempIn=16;
+float tempIn=16;
 int relay1 =  5; // выход на реле
 
-OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature sensors(&oneWire);
-
+OneWire oneWire_in(ONE_WIRE_BUS);
+DallasTemperature sensor_inhouse(&oneWire_in);
 SimpleTimer timer;
 WidgetLED led1(V1);
 WidgetLED led2(V2);
@@ -39,8 +38,8 @@ char auth[] = "efb1c46461fd49298a0b7c94447c1e81";
 
 // Your WiFi credentials.
 // Set password to "" for open networks.
-char ssid[] = "DMS_ODESSA";
-char pass[] = "0677336591";
+char ssid[] = "wasp";
+char pass[] = "volvo940";
 
 
 BLYNK_CONNECTED()  //синхронизация
@@ -81,11 +80,13 @@ void relayTemp() // управление реле температуры
   if (tempIn < t-1 && i==1)  
     {
     digitalWrite(relay1, LOW);
+    pinMode(relay1, OUTPUT);
     led2.on();
     }
   else   if (tempIn >t || i==0 ) 
     {
     digitalWrite(relay1, HIGH);
+    pinMode(relay1, INPUT);
     led2.off();
     }
 
@@ -93,9 +94,9 @@ void relayTemp() // управление реле температуры
   
 void sendTemps() //получение и отправка температуры
 {
-  sensors.requestTemperatures(); // Polls the sensors
-  //tempIn = sensors.getTempCByIndex(0); // Gets first probe on wire in lieu of by address
-  tempIn = t;
+  sensor_inhouse.requestTemperatures();
+  tempIn = sensor_inhouse.getTempCByIndex(0); // Gets first probe on wire in lieu of by address
+  
   Blynk.virtualWrite(5, tempIn);
  
   
@@ -108,10 +109,10 @@ void sendTemps() //получение и отправка температуры
 void setup()
 {
 
-  timer.setInterval(2000, sendTemps); //вызов подпрограммы получения температуры 2 сек
-  timer.setInterval(1000, relayTemp); //вызов подпрограммы управления реле температуры 1 сек
-  pinMode(relay1, OUTPUT);
-  digitalWrite(relay1, LOW);
+  timer.setInterval(5000, sendTemps); //вызов подпрограммы получения температуры 5 сек
+  timer.setInterval(5000, relayTemp); //вызов подпрограммы управления реле температуры 5 сек
+  sensor_inhouse.begin();
+  digitalWrite(relay1, HIGH);
   Serial.begin(9600);
 
   Blynk.begin(auth, ssid, pass);
